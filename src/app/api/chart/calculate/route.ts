@@ -89,9 +89,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[chart/calculate] Error:', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack?.split('\n').slice(0, 5).join(' | ') : '';
+    console.error('[chart/calculate] Error:', msg, stack);
     return NextResponse.json(
-      { success: false, error: 'Failed to calculate chart' },
+      { success: false, error: 'Failed to calculate chart', detail: msg },
       { status: 500 }
     );
   }
