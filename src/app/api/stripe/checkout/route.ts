@@ -1,0 +1,104 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { stripe, getPlans, getCreditPacks } from '@/lib/stripe';
+import { createServerClient } from '@/lib/supabase';
+
+const inputSchema = z.object({
+  priceId: z.string().min(1, 'priceId is required'),
+  type: z.enum(['subscription', 'credits']),
+  userId: z.string().min(1, 'userId is required'),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const input = inputSchema.parse(body);
+
+    const supabase = createServerClient();
+
+    // Get or create Stripe customer
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, email, stripe_customer_id')
+      .eq('id', input.userId)
+      .single();
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    let customerId = user.stripe_customer_id;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId: user.id },
+      });
+      customerId = customer.id;
+
+      await supabase
+        .from('users')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', user.id);
+    }
+
+    // Validate priceId matches our plans or credit packs
+    const plans = getPlans();
+    const creditPacks = getCreditPacks();
+    const isSubscription = input.type === 'subscription';
+    if (isSubscription) {
+      const validPriceIds = [plans.basic.stripePriceId, plans.premium.stripePriceId];
+      if (!validPriceIds.includes(input.priceId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid price ID for subscription' },
+          { status: 400 }
+        );
+      }
+    } else {
+      const validPriceIds = creditPacks.map((p) => p.stripePriceId);
+      if (!validPriceIds.includes(input.priceId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid price ID for credits' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const origin = req.headers.get('origin') ?? 'http://localhost:3000';
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: isSubscription ? 'subscription' : 'payment',
+      line_items: [
+        {
+          price: input.priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${origin}/dashboard?checkout=success`,
+      cancel_url: `${origin}/pricing?checkout=cancelled`,
+      metadata: {
+        userId: input.userId,
+        type: input.type,
+      },
+    });
+
+    return NextResponse.json({ success: true, url: session.url });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: error.issues },
+        { status: 400 }
+      );
+    }
+
+    console.error('[stripe/checkout] Error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create checkout session' },
+      { status: 500 }
+    );
+  }
+}

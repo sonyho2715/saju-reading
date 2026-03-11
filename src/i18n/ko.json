@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "home": "홈",
+    "reading": "사주풀이",
+    "compatibility": "궁합",
+    "pricing": "요금제",
+    "dashboard": "대시보드"
+  },
+  "hero": {
+    "title": "당신의 운명을 알아보세요",
+    "subtitle": "한국 전통 사주명리학과 AI의 만남",
+    "cta": "내 사주 분석하기"
+  },
+  "form": {
+    "birthDate": "생년월일",
+    "birthTime": "출생 시간",
+    "gender": "성별",
+    "male": "남성",
+    "female": "여성",
+    "calendarType": "역법",
+    "solar": "양력",
+    "lunar": "음력",
+    "leapMonth": "윤달",
+    "timeUnknown": "출생 시간을 모릅니다",
+    "submit": "사주 분석하기",
+    "calculating": "분석 중..."
+  },
+  "pillars": {
+    "year": "연주 (年柱)",
+    "month": "월주 (月柱)",
+    "day": "일주 (日柱)",
+    "hour": "시주 (時柱)"
+  },
+  "elements": {
+    "wood": "목 (木)",
+    "fire": "화 (火)",
+    "earth": "토 (土)",
+    "metal": "금 (金)",
+    "water": "수 (水)"
+  },
+  "reading": {
+    "quick": "간단 풀이",
+    "personality": "성격 분석",
+    "career": "직업과 재물",
+    "love": "연애와 인간관계",
+    "health": "건강",
+    "annual": "올해 운세",
+    "compatibility": "궁합"
+  },
+  "errors": {
+    "required": "필수 항목입니다",
+    "invalidDate": "올바르지 않은 날짜입니다",
+    "apiError": "문제가 발생했습니다. 다시 시도해 주세요."
+  }
+}

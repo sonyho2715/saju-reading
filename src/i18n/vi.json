@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "home": "Trang chu",
+    "reading": "Xem Tu Tru",
+    "compatibility": "Hop Tuoi",
+    "pricing": "Bang Gia",
+    "dashboard": "Bang Dieu Khien"
+  },
+  "hero": {
+    "title": "Kham Pha Van Menh Cua Ban",
+    "subtitle": "Tu vi Han Quoc ket hop cong nghe AI hien dai",
+    "cta": "Xem Tu Tru Cua Toi"
+  },
+  "form": {
+    "birthDate": "Ngay Sinh",
+    "birthTime": "Gio Sinh",
+    "gender": "Gioi Tinh",
+    "male": "Nam",
+    "female": "Nu",
+    "calendarType": "Lich",
+    "solar": "Duong Lich",
+    "lunar": "Am Lich",
+    "leapMonth": "Thang Nhuan",
+    "timeUnknown": "Toi khong biet gio sinh",
+    "submit": "Xem Tu Tru",
+    "calculating": "Dang tinh toan..."
+  },
+  "pillars": {
+    "year": "Tru Nam",
+    "month": "Tru Thang",
+    "day": "Tru Ngay",
+    "hour": "Tru Gio"
+  },
+  "elements": {
+    "wood": "Moc 木",
+    "fire": "Hoa 火",
+    "earth": "Tho 土",
+    "metal": "Kim 金",
+    "water": "Thuy 水"
+  },
+  "reading": {
+    "quick": "Xem Nhanh",
+    "personality": "Tinh Cach",
+    "career": "Su Nghiep & Tai Loc",
+    "love": "Tinh Cam & Nhan Duyen",
+    "health": "Suc Khoe",
+    "annual": "Van Han Hang Nam",
+    "compatibility": "Hop Tuoi"
+  },
+  "errors": {
+    "required": "Truong nay bat buoc",
+    "invalidDate": "Ngay khong hop le",
+    "apiError": "Da xay ra loi. Vui long thu lai."
+  }
+}

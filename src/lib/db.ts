@@ -1,7 +1,16 @@
 import { createServerClient } from './supabase';
 import type { ChartAnalysis, Element } from '../engine/types';
 import type { ReadingResult } from './reading-generator';
-import type { Json } from '../types/supabase';
+import type { Json, Database } from '../types/supabase';
+
+// ---------------------------------------------------------------------------
+// Row types from Database
+// ---------------------------------------------------------------------------
+
+export type ChartRow = Database['public']['Tables']['charts']['Row'];
+export type ReadingRow = Database['public']['Tables']['readings']['Row'];
+export type BirthProfileRow = Database['public']['Tables']['birth_profiles']['Row'];
+export type UserRow = Database['public']['Tables']['users']['Row'];
 
 // ---------------------------------------------------------------------------
 // Element index mapping (Element enum string -> integer for DB storage)
@@ -65,7 +74,7 @@ export async function saveChart(profileId: string, chartData: ChartAnalysis): Pr
  * Retrieve a chart by ID.
  * Returns the raw chart row (not reconstructed ChartAnalysis).
  */
-export async function getChart(chartId: string) {
+export async function getChart(chartId: string): Promise<ChartRow> {
   const db = createServerClient();
 
   const { data, error } = await db
@@ -75,7 +84,7 @@ export async function getChart(chartId: string) {
     .single();
 
   if (error) throw new Error(`Failed to get chart: ${error.message}`);
-  return data;
+  return data as ChartRow;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,7 +145,7 @@ export async function saveReading(
 /**
  * Get a reading by ID.
  */
-export async function getReading(readingId: string) {
+export async function getReading(readingId: string): Promise<ReadingRow> {
   const db = createServerClient();
 
   const { data, error } = await db
@@ -146,13 +155,13 @@ export async function getReading(readingId: string) {
     .single();
 
   if (error) throw new Error(`Failed to get reading: ${error.message}`);
-  return data;
+  return data as ReadingRow;
 }
 
 /**
  * Get all readings for a user.
  */
-export async function getUserReadings(userId: string, limit = 20) {
+export async function getUserReadings(userId: string, limit = 20): Promise<ReadingRow[]> {
   const db = createServerClient();
 
   const { data, error } = await db
@@ -163,7 +172,7 @@ export async function getUserReadings(userId: string, limit = 20) {
     .limit(limit);
 
   if (error) throw new Error(`Failed to get user readings: ${error.message}`);
-  return data;
+  return (data ?? []) as ReadingRow[];
 }
 
 // ---------------------------------------------------------------------------
@@ -173,7 +182,7 @@ export async function getUserReadings(userId: string, limit = 20) {
 /**
  * Get all birth profiles for a user.
  */
-export async function getUserProfiles(userId: string) {
+export async function getUserProfiles(userId: string): Promise<BirthProfileRow[]> {
   const db = createServerClient();
 
   const { data, error } = await db
@@ -183,7 +192,7 @@ export async function getUserProfiles(userId: string) {
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(`Failed to get user profiles: ${error.message}`);
-  return data;
+  return (data ?? []) as BirthProfileRow[];
 }
 
 /**

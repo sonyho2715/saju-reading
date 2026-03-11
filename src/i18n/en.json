@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "home": "Home",
+    "reading": "Reading",
+    "compatibility": "Compatibility",
+    "pricing": "Pricing",
+    "dashboard": "Dashboard"
+  },
+  "hero": {
+    "title": "Discover Your Destiny",
+    "subtitle": "Ancient Korean astrology meets modern AI",
+    "cta": "Calculate My Destiny"
+  },
+  "form": {
+    "birthDate": "Birth Date",
+    "birthTime": "Birth Time",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "calendarType": "Calendar",
+    "solar": "Solar",
+    "lunar": "Lunar",
+    "leapMonth": "Leap Month",
+    "timeUnknown": "I don't know my birth time",
+    "submit": "Calculate My Destiny",
+    "calculating": "Calculating..."
+  },
+  "pillars": {
+    "year": "Year Pillar",
+    "month": "Month Pillar",
+    "day": "Day Pillar",
+    "hour": "Hour Pillar"
+  },
+  "elements": {
+    "wood": "Wood 木",
+    "fire": "Fire 火",
+    "earth": "Earth 土",
+    "metal": "Metal 金",
+    "water": "Water 水"
+  },
+  "reading": {
+    "quick": "Quick Reading",
+    "personality": "Personality",
+    "career": "Career & Wealth",
+    "love": "Love & Relationships",
+    "health": "Health",
+    "annual": "Annual Forecast",
+    "compatibility": "Compatibility"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalidDate": "Invalid date",
+    "apiError": "Something went wrong. Please try again."
+  }
+}
