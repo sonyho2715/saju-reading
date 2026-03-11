@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getUserFromSession } from '@/lib/auth';
-import { getUserProfiles, getUserReadings, getUserCreditBalance, type BirthProfileRow, type ReadingRow } from '@/lib/db';
+import { getUserProfiles, getUserReadings, getUserCreditBalance } from '@/lib/db';
+import type { BirthProfile, Reading } from '@/generated/prisma/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,8 @@ export default async function DashboardPage() {
     redirect('/auth/login');
   }
 
-  let profiles: BirthProfileRow[] = [];
-  let readings: ReadingRow[] = [];
+  let profiles: BirthProfile[] = [];
+  let readings: Reading[] = [];
   let creditBalance = 0;
 
   try {
@@ -177,8 +178,8 @@ export default async function DashboardPage() {
                     <div>
                       <div className="font-medium text-sm">{profile.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {profile.birth_date} | {profile.gender === 'male' ? 'Male' : 'Female'}
-                        {profile.is_primary && (
+                        {profile.birthDate.toISOString().slice(0, 10)} | {profile.gender === 'male' ? 'Male' : 'Female'}
+                        {profile.isPrimary && (
                           <Badge variant="secondary" className="ml-2 text-[10px]">Primary</Badge>
                         )}
                       </div>
@@ -213,10 +214,10 @@ export default async function DashboardPage() {
                   >
                     <div>
                       <div className="font-medium text-sm">
-                        {READING_TYPE_LABELS[reading.reading_type] ?? reading.reading_type} Reading
+                        {READING_TYPE_LABELS[reading.readingType] ?? reading.readingType} Reading
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {new Date(reading.created_at).toLocaleDateString()} | {reading.language.toUpperCase()}
+                        {reading.createdAt.toLocaleDateString()} | {reading.language.toUpperCase()}
                       </div>
                     </div>
                     <Badge variant="outline" className="text-xs">

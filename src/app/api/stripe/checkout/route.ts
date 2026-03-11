@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { stripe, getPlans, getCreditPacks } from '@/lib/stripe';
-import { createServerClient } from '@/lib/supabase';
+import { db } from '@/lib/prisma';
 
 const inputSchema = z.object({
   priceId: z.string().min(1, 'priceId is required'),
@@ -14,14 +14,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const input = inputSchema.parse(body);
 
-    const supabase = createServerClient();
-
     // Get or create Stripe customer
-    const { data: user } = await supabase
-      .from('users')
-      .select('id, email, stripe_customer_id')
-      .eq('id', input.userId)
-      .single();
+    const user = await db.user.findUnique({
+      where: { id: input.userId },
+      select: { id: true, email: true, stripeCustomerId: true },
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -30,7 +27,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let customerId = user.stripe_customer_id;
+    let customerId = user.stripeCustomerId;
 
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -39,10 +36,10 @@ export async function POST(req: NextRequest) {
       });
       customerId = customer.id;
 
-      await supabase
-        .from('users')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', user.id);
+      await db.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId: customerId },
+      });
     }
 
     // Validate priceId matches our plans or credit packs

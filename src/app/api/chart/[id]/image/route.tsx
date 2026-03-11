@@ -4,7 +4,7 @@ import { getChart } from '@/lib/db';
 import { STEMS } from '@/engine/constants/stems';
 import { BRANCHES } from '@/engine/constants/branches';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 const ELEMENT_COLORS: Record<string, string> = {
   Wood: '#22c55e',
@@ -34,14 +34,14 @@ export async function GET(
       return NextResponse.json({ error: 'Chart not found' }, { status: 404 });
     }
 
-    const yearStem = STEMS[chartRow.year_stem];
-    const yearBranch = BRANCHES[chartRow.year_branch];
-    const monthStem = STEMS[chartRow.month_stem];
-    const monthBranch = BRANCHES[chartRow.month_branch];
-    const dayStem = STEMS[chartRow.day_stem];
-    const dayBranch = BRANCHES[chartRow.day_branch];
-    const hourStem = chartRow.hour_stem !== null ? STEMS[chartRow.hour_stem] : null;
-    const hourBranch = chartRow.hour_branch !== null ? BRANCHES[chartRow.hour_branch] : null;
+    const yearStem = STEMS[chartRow.yearStem];
+    const yearBranch = BRANCHES[chartRow.yearBranch];
+    const monthStem = STEMS[chartRow.monthStem];
+    const monthBranch = BRANCHES[chartRow.monthBranch];
+    const dayStem = STEMS[chartRow.dayStem];
+    const dayBranch = BRANCHES[chartRow.dayBranch];
+    const hourStem = chartRow.hourStem !== null ? STEMS[chartRow.hourStem] : null;
+    const hourBranch = chartRow.hourBranch !== null ? BRANCHES[chartRow.hourBranch] : null;
 
     const pillars = [
       { label: 'Hour', stem: hourStem, branch: hourBranch },

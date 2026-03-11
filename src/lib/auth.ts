@@ -1,64 +1,45 @@
-import { createServerClient } from './supabase';
+import { getIronSession, IronSession } from 'iron-session';
+import { cookies } from 'next/headers';
 
-interface SessionUser {
-  id: string;
+export interface SessionData {
+  userId: string;
   email: string;
-  tier: string;
+  name?: string;
+  subscriptionTier: string;
+  isLoggedIn: boolean;
 }
 
-/**
- * Get the current session user from Supabase auth.
- * Returns user info or null if not authenticated.
- */
-export async function getUserFromSession(): Promise<SessionUser | null> {
-  try {
-    const supabase = createServerClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+const sessionOptions = {
+  password: process.env.SESSION_SECRET!,
+  cookieName: 'saju_session',
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  },
+};
 
-    if (error || !user) return null;
-
-    // Fetch user record from our users table
-    const { data: profile } = await supabase
-      .from('users')
-      .select('id, email, subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile) {
-      // User exists in auth but not in users table yet
-      return {
-        id: user.id,
-        email: user.email ?? '',
-        tier: 'free',
-      };
-    }
-
-    return {
-      id: profile.id,
-      email: profile.email,
-      tier: profile.subscription_tier,
-    };
-  } catch {
-    return null;
-  }
+export async function getSession(): Promise<IronSession<SessionData>> {
+  const cookieStore = await cookies();
+  return getIronSession<SessionData>(cookieStore, sessionOptions);
 }
 
-/**
- * Get session and throw/redirect if not authenticated.
- * Use in Server Components and API routes.
- */
-export async function requireAuth(): Promise<SessionUser> {
-  const user = await getUserFromSession();
-  if (!user) {
+export async function requireAuth() {
+  const session = await getSession();
+  if (!session.isLoggedIn || !session.userId) {
     throw new Error('Unauthorized');
   }
-  return user;
+  return session;
 }
 
-/**
- * Get session info without throwing.
- * Convenience alias for getUserFromSession.
- */
-export async function getSession(): Promise<SessionUser | null> {
-  return getUserFromSession();
+export async function getUserFromSession() {
+  const session = await getSession();
+  if (!session.isLoggedIn || !session.userId) return null;
+  return {
+    id: session.userId,
+    email: session.email,
+    name: session.name,
+    tier: session.subscriptionTier,
+  };
 }

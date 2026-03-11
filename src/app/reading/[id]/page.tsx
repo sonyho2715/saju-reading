@@ -66,17 +66,17 @@ export default async function SavedReadingPage({ params }: ReadingPageProps) {
   } | null;
 
   const sections = content?.sections ?? [];
-  const readingTypeLabel = READING_TYPE_LABELS[reading.reading_type] ?? reading.reading_type;
+  const readingTypeLabel = READING_TYPE_LABELS[reading.readingType] ?? reading.readingType;
 
   // Try to get chart info
   let chartInfo: { pattern: string | null; strength: string } | null = null;
-  if (reading.chart_id) {
+  if (reading.chartId) {
     try {
-      const chart = await getChart(reading.chart_id);
+      const chart = await getChart(reading.chartId);
       if (chart) {
         chartInfo = {
-          pattern: chart.chart_pattern,
-          strength: chart.day_master_strength,
+          pattern: chart.chartPattern,
+          strength: chart.dayMasterStrength,
         };
       }
     } catch {
@@ -94,7 +94,7 @@ export default async function SavedReadingPage({ params }: ReadingPageProps) {
           </Badge>
           <h1 className="text-3xl font-bold mb-2">Your Saju Reading</h1>
           <p className="text-muted-foreground text-sm">
-            Generated on {new Date(reading.created_at).toLocaleDateString()}
+            Generated on {reading.createdAt.toLocaleDateString()}
             {reading.language !== 'en' && ` | Language: ${reading.language.toUpperCase()}`}
           </p>
           {chartInfo && (

@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                String         @id @default(cuid())
+  email             String         @unique
+  name              String?
+  passwordHash      String?
+  preferredLanguage String         @default("en")
+  subscriptionTier  String         @default("free")
+  stripeCustomerId  String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  birthProfiles     BirthProfile[]
+  readings          Reading[]
+  credits           Credit[]
+}
+
+model BirthProfile {
+  id             String   @id @default(cuid())
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  birthDate      DateTime
+  birthTime      String?
+  birthTimeKnown Boolean  @default(true)
+  gender         String
+  calendarType   String   @default("solar")
+  isLeapMonth    Boolean  @default(false)
+  timezone       String   @default("Asia/Seoul")
+  isPrimary      Boolean  @default(false)
+  notes          String?
+  createdAt      DateTime @default(now())
+  charts         Chart[]
+}
+
+model Chart {
+  id                String          @id @default(cuid())
+  profileId         String?
+  profile           BirthProfile?   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  hourStem          Int?
+  hourBranch        Int?
+  dayStem           Int
+  dayBranch         Int
+  monthStem         Int
+  monthBranch       Int
+  yearStem          Int
+  yearBranch        Int
+  dayMaster         Int
+  dayMasterStrength String
+  elementBalance    Json
+  tenGods           Json
+  hiddenStems       Json
+  usefulGod         Int?
+  jealousyGod       Int?
+  chartPattern      String?
+  specialStars      Json            @default("[]")
+  combinations      Json            @default("[]")
+  clashes           Json            @default("[]")
+  lifeStages        Json            @default("{}")
+  luckCycles        Json            @default("[]")
+  engineVersion     String
+  calculatedAt      DateTime        @default(now())
+  readings          Reading[]
+  compatibilityA    Compatibility[] @relation("ChartA")
+  compatibilityB    Compatibility[] @relation("ChartB")
+}
+
+model Reading {
+  id             String   @id @default(cuid())
+  chartId        String?
+  chart          Chart?   @relation(fields: [chartId], references: [id], onDelete: SetNull)
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  readingType    String
+  language       String   @default("en")
+  content        Json     @default("{}")
+  targetYear     Int?
+  targetMonth    Int?
+  partnerChartId String?
+  aiModel        String?
+  tokenCount     Int?
+  createdAt      DateTime @default(now())
+}
+
+model Compatibility {
+  id           String   @id @default(cuid())
+  chartAId     String
+  chartA       Chart    @relation("ChartA", fields: [chartAId], references: [id], onDelete: Cascade)
+  chartBId     String
+  chartB       Chart    @relation("ChartB", fields: [chartBId], references: [id], onDelete: Cascade)
+  overallScore Int?
+  analysis     Json     @default("{}")
+  createdAt    DateTime @default(now())
+}
+
+model Credit {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Int
+  transactionType String
+  description     String?
+  stripePaymentId String?
+  createdAt       DateTime @default(now())
+}
+
+model DailyEnergy {
+  id                String   @id @default(cuid())
+  date              DateTime @unique
+  stemIndex         Int
+  branchIndex       Int
+  elementHighlights Json     @default("{}")
+  createdAt         DateTime @default(now())
+}

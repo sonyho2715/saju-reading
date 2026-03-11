@@ -1,16 +1,16 @@
-import { createServerClient } from './supabase';
+import { db } from './prisma';
 import type { ChartAnalysis, Element } from '../engine/types';
 import type { ReadingResult } from './reading-generator';
-import type { Json, Database } from '../types/supabase';
+import type { Prisma, BirthProfile, Chart, Reading, Credit, DailyEnergy } from '@/generated/prisma/client';
 
 // ---------------------------------------------------------------------------
-// Row types from Database
+// Re-export row types from Prisma (replaces old Supabase types)
 // ---------------------------------------------------------------------------
 
-export type ChartRow = Database['public']['Tables']['charts']['Row'];
-export type ReadingRow = Database['public']['Tables']['readings']['Row'];
-export type BirthProfileRow = Database['public']['Tables']['birth_profiles']['Row'];
-export type UserRow = Database['public']['Tables']['users']['Row'];
+export type ChartRow = Chart;
+export type ReadingRow = Reading;
+export type BirthProfileRow = BirthProfile;
+export type UserRow = Prisma.UserGetPayload<object>;
 
 // ---------------------------------------------------------------------------
 // Element index mapping (Element enum string -> integer for DB storage)
@@ -33,41 +33,35 @@ function elementToIndex(element: Element): number {
  * Returns the chart ID.
  */
 export async function saveChart(profileId: string, chartData: ChartAnalysis): Promise<string> {
-  const db = createServerClient();
+  const chart = await db.chart.create({
+    data: {
+      profileId,
+      hourStem: chartData.fourPillars.hour?.stem.index ?? null,
+      hourBranch: chartData.fourPillars.hour?.branch.index ?? null,
+      dayStem: chartData.fourPillars.day.stem.index,
+      dayBranch: chartData.fourPillars.day.branch.index,
+      monthStem: chartData.fourPillars.month.stem.index,
+      monthBranch: chartData.fourPillars.month.branch.index,
+      yearStem: chartData.fourPillars.year.stem.index,
+      yearBranch: chartData.fourPillars.year.branch.index,
+      dayMaster: chartData.dayMaster.index,
+      dayMasterStrength: chartData.dayMasterStrength,
+      elementBalance: chartData.elementBalance as unknown as Prisma.InputJsonValue,
+      tenGods: chartData.tenGods as unknown as Prisma.InputJsonValue,
+      hiddenStems: chartData.hiddenStems as unknown as Prisma.InputJsonValue,
+      usefulGod: elementToIndex(chartData.usefulGod),
+      jealousyGod: elementToIndex(chartData.jealousyGod),
+      chartPattern: chartData.chartPattern,
+      specialStars: chartData.specialStars as unknown as Prisma.InputJsonValue,
+      combinations: chartData.combinations as unknown as Prisma.InputJsonValue,
+      clashes: chartData.clashes as unknown as Prisma.InputJsonValue,
+      lifeStages: chartData.lifeStages as unknown as Prisma.InputJsonValue,
+      luckCycles: chartData.luckCycles as unknown as Prisma.InputJsonValue,
+      engineVersion: chartData.engineVersion,
+    },
+  });
 
-  const { data, error } = await db
-    .from('charts')
-    .insert({
-      profile_id: profileId,
-      hour_stem: chartData.fourPillars.hour?.stem.index ?? null,
-      hour_branch: chartData.fourPillars.hour?.branch.index ?? null,
-      day_stem: chartData.fourPillars.day.stem.index,
-      day_branch: chartData.fourPillars.day.branch.index,
-      month_stem: chartData.fourPillars.month.stem.index,
-      month_branch: chartData.fourPillars.month.branch.index,
-      year_stem: chartData.fourPillars.year.stem.index,
-      year_branch: chartData.fourPillars.year.branch.index,
-      day_master: chartData.dayMaster.index,
-      day_master_strength: chartData.dayMasterStrength,
-      element_balance: chartData.elementBalance as unknown as Json,
-      ten_gods: chartData.tenGods as unknown as Json,
-      hidden_stems: chartData.hiddenStems as unknown as Json,
-      useful_god: elementToIndex(chartData.usefulGod),
-      jealousy_god: elementToIndex(chartData.jealousyGod),
-      chart_pattern: chartData.chartPattern,
-      special_stars: chartData.specialStars as unknown as Json,
-      combinations: chartData.combinations as unknown as Json,
-      clashes: chartData.clashes as unknown as Json,
-      life_stages: chartData.lifeStages as unknown as Json,
-      luck_cycles: chartData.luckCycles as unknown as Json,
-      engine_version: chartData.engineVersion,
-    })
-    .select('id')
-    .single();
-
-  if (error) throw new Error(`Failed to save chart: ${error.message}`);
-  if (!data) throw new Error('Failed to save chart: no data returned');
-  return data.id;
+  return chart.id;
 }
 
 /**
@@ -75,16 +69,9 @@ export async function saveChart(profileId: string, chartData: ChartAnalysis): Pr
  * Returns the raw chart row (not reconstructed ChartAnalysis).
  */
 export async function getChart(chartId: string): Promise<ChartRow> {
-  const db = createServerClient();
-
-  const { data, error } = await db
-    .from('charts')
-    .select('*')
-    .eq('id', chartId)
-    .single();
-
-  if (error) throw new Error(`Failed to get chart: ${error.message}`);
-  return data as ChartRow;
+  const chart = await db.chart.findUnique({ where: { id: chartId } });
+  if (!chart) throw new Error(`Chart not found: ${chartId}`);
+  return chart;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,9 +96,7 @@ export async function saveReading(
   readingData: ReadingResult,
   params: SaveReadingParams
 ): Promise<string> {
-  const db = createServerClient();
-
-  const contentJson: Json = {
+  const contentJson: Prisma.InputJsonValue = {
     sections: readingData.sections.map(s => ({
       title: s.title,
       content: s.content,
@@ -120,59 +105,42 @@ export async function saveReading(
     rawText: readingData.rawText,
   };
 
-  const { data, error } = await db
-    .from('readings')
-    .insert({
-      chart_id: chartId,
-      user_id: userId,
-      reading_type: params.readingType,
+  const reading = await db.reading.create({
+    data: {
+      chartId: chartId || null,
+      userId: userId,
+      readingType: params.readingType,
       language: params.language,
       content: contentJson,
-      target_year: params.targetYear ?? null,
-      target_month: params.targetMonth ?? null,
-      partner_chart_id: params.partnerChartId ?? null,
-      ai_model: 'claude-opus-4-6',
-      token_count: readingData.tokenCount.input + readingData.tokenCount.output,
-    })
-    .select('id')
-    .single();
+      targetYear: params.targetYear ?? null,
+      targetMonth: params.targetMonth ?? null,
+      partnerChartId: params.partnerChartId ?? null,
+      aiModel: 'claude-opus-4-6',
+      tokenCount: readingData.tokenCount.input + readingData.tokenCount.output,
+    },
+  });
 
-  if (error) throw new Error(`Failed to save reading: ${error.message}`);
-  if (!data) throw new Error('Failed to save reading: no data returned');
-  return data.id;
+  return reading.id;
 }
 
 /**
  * Get a reading by ID.
  */
 export async function getReading(readingId: string): Promise<ReadingRow> {
-  const db = createServerClient();
-
-  const { data, error } = await db
-    .from('readings')
-    .select('*')
-    .eq('id', readingId)
-    .single();
-
-  if (error) throw new Error(`Failed to get reading: ${error.message}`);
-  return data as ReadingRow;
+  const reading = await db.reading.findUnique({ where: { id: readingId } });
+  if (!reading) throw new Error(`Reading not found: ${readingId}`);
+  return reading;
 }
 
 /**
  * Get all readings for a user.
  */
 export async function getUserReadings(userId: string, limit = 20): Promise<ReadingRow[]> {
-  const db = createServerClient();
-
-  const { data, error } = await db
-    .from('readings')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) throw new Error(`Failed to get user readings: ${error.message}`);
-  return (data ?? []) as ReadingRow[];
+  return db.reading.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -183,16 +151,10 @@ export async function getUserReadings(userId: string, limit = 20): Promise<Readi
  * Get all birth profiles for a user.
  */
 export async function getUserProfiles(userId: string): Promise<BirthProfileRow[]> {
-  const db = createServerClient();
-
-  const { data, error } = await db
-    .from('birth_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw new Error(`Failed to get user profiles: ${error.message}`);
-  return (data ?? []) as BirthProfileRow[];
+  return db.birthProfile.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
 }
 
 /**
@@ -214,29 +176,23 @@ export async function createProfile(
     notes?: string;
   }
 ): Promise<string> {
-  const db = createServerClient();
-
-  const { data, error } = await db
-    .from('birth_profiles')
-    .insert({
-      user_id: userId,
+  const created = await db.birthProfile.create({
+    data: {
+      userId,
       name: profile.name,
-      birth_date: profile.birthDate,
-      birth_time: profile.birthTime ?? null,
-      birth_time_known: profile.birthTimeKnown ?? (profile.birthTime !== null && profile.birthTime !== undefined),
+      birthDate: new Date(profile.birthDate),
+      birthTime: profile.birthTime ?? null,
+      birthTimeKnown: profile.birthTimeKnown ?? (profile.birthTime !== null && profile.birthTime !== undefined),
       gender: profile.gender,
-      calendar_type: profile.calendarType ?? 'solar',
-      is_leap_month: profile.isLeapMonth ?? false,
+      calendarType: profile.calendarType ?? 'solar',
+      isLeapMonth: profile.isLeapMonth ?? false,
       timezone: profile.timezone ?? 'Asia/Seoul',
-      is_primary: profile.isPrimary ?? false,
+      isPrimary: profile.isPrimary ?? false,
       notes: profile.notes ?? null,
-    })
-    .select('id')
-    .single();
+    },
+  });
 
-  if (error) throw new Error(`Failed to create profile: ${error.message}`);
-  if (!data) throw new Error('Failed to create profile: no data returned');
-  return data.id;
+  return created.id;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,19 +203,14 @@ export async function createProfile(
  * Get the current credit balance for a user.
  */
 export async function getUserCreditBalance(userId: string): Promise<number> {
-  const db = createServerClient();
+  const credits = await db.credit.findMany({
+    where: { userId },
+    select: { amount: true, transactionType: true },
+  });
 
-  const { data, error } = await db
-    .from('credits')
-    .select('amount, transaction_type')
-    .eq('user_id', userId);
-
-  if (error) throw new Error(`Failed to get credit balance: ${error.message}`);
-
-  // Sum up: purchases and bonuses add, uses subtract
   let balance = 0;
-  for (const row of data) {
-    switch (row.transaction_type) {
+  for (const row of credits) {
+    switch (row.transactionType) {
       case 'purchase':
       case 'bonus':
       case 'refund':
@@ -284,18 +235,14 @@ export async function deductCredit(userId: string, amount: number, description: 
     throw new Error(`Insufficient credits. Balance: ${balance}, required: ${amount}`);
   }
 
-  const db = createServerClient();
-
-  const { error } = await db
-    .from('credits')
-    .insert({
-      user_id: userId,
+  await db.credit.create({
+    data: {
+      userId,
       amount,
-      transaction_type: 'use',
+      transactionType: 'use',
       description,
-    });
-
-  if (error) throw new Error(`Failed to deduct credits: ${error.message}`);
+    },
+  });
 }
 
 /**
@@ -307,19 +254,15 @@ export async function addCredits(
   description: string,
   stripePaymentId?: string
 ): Promise<void> {
-  const db = createServerClient();
-
-  const { error } = await db
-    .from('credits')
-    .insert({
-      user_id: userId,
+  await db.credit.create({
+    data: {
+      userId,
       amount,
-      transaction_type: 'purchase',
+      transactionType: 'purchase',
       description,
-      stripe_payment_id: stripePaymentId ?? null,
-    });
-
-  if (error) throw new Error(`Failed to add credits: ${error.message}`);
+      stripePaymentId: stripePaymentId ?? null,
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -330,19 +273,9 @@ export async function addCredits(
  * Get today's daily energy data.
  */
 export async function getDailyEnergy(date: string) {
-  const db = createServerClient();
-
-  const { data, error } = await db
-    .from('daily_energies')
-    .select('*')
-    .eq('date', date)
-    .single();
-
-  if (error && error.code !== 'PGRST116') {
-    throw new Error(`Failed to get daily energy: ${error.message}`);
-  }
-
-  return data;
+  return db.dailyEnergy.findUnique({
+    where: { date: new Date(date) },
+  });
 }
 
 /**
@@ -354,18 +287,20 @@ export async function saveDailyEnergy(
   branchIndex: number,
   elementHighlights: Record<string, unknown>
 ): Promise<void> {
-  const db = createServerClient();
-
-  const { error } = await db
-    .from('daily_energies')
-    .upsert({
-      date,
-      stem_index: stemIndex,
-      branch_index: branchIndex,
-      element_highlights: elementHighlights as unknown as Json,
-    }, { onConflict: 'date' });
-
-  if (error) throw new Error(`Failed to save daily energy: ${error.message}`);
+  await db.dailyEnergy.upsert({
+    where: { date: new Date(date) },
+    update: {
+      stemIndex,
+      branchIndex,
+      elementHighlights: elementHighlights as Prisma.InputJsonValue,
+    },
+    create: {
+      date: new Date(date),
+      stemIndex,
+      branchIndex,
+      elementHighlights: elementHighlights as Prisma.InputJsonValue,
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -382,20 +317,14 @@ export async function saveCompatibility(
   overallScore: number,
   analysis: Record<string, unknown>
 ): Promise<string> {
-  const db = createServerClient();
+  const compat = await db.compatibility.create({
+    data: {
+      chartAId,
+      chartBId,
+      overallScore,
+      analysis: analysis as Prisma.InputJsonValue,
+    },
+  });
 
-  const { data, error } = await db
-    .from('compatibility')
-    .insert({
-      chart_a_id: chartAId,
-      chart_b_id: chartBId,
-      overall_score: overallScore,
-      analysis: analysis as unknown as Json,
-    })
-    .select('id')
-    .single();
-
-  if (error) throw new Error(`Failed to save compatibility: ${error.message}`);
-  if (!data) throw new Error('Failed to save compatibility: no data returned');
-  return data.id;
+  return compat.id;
 }

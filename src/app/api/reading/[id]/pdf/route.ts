@@ -13,14 +13,14 @@ export const runtime = 'nodejs';
  * The DB stores indexes; we need to rebuild full objects.
  */
 function reconstructChart(row: Record<string, unknown>): ChartAnalysis {
-  const yearStem = STEMS[row.year_stem as number];
-  const yearBranch = BRANCHES[row.year_branch as number];
-  const monthStem = STEMS[row.month_stem as number];
-  const monthBranch = BRANCHES[row.month_branch as number];
-  const dayStem = STEMS[row.day_stem as number];
-  const dayBranch = BRANCHES[row.day_branch as number];
-  const hourStem = row.hour_stem !== null ? STEMS[row.hour_stem as number] : null;
-  const hourBranch = row.hour_branch !== null ? BRANCHES[row.hour_branch as number] : null;
+  const yearStem = STEMS[row.yearStem as number];
+  const yearBranch = BRANCHES[row.yearBranch as number];
+  const monthStem = STEMS[row.monthStem as number];
+  const monthBranch = BRANCHES[row.monthBranch as number];
+  const dayStem = STEMS[row.dayStem as number];
+  const dayBranch = BRANCHES[row.dayBranch as number];
+  const hourStem = row.hourStem !== null ? STEMS[row.hourStem as number] : null;
+  const hourBranch = row.hourBranch !== null ? BRANCHES[row.hourBranch as number] : null;
 
   const fourPillars: FourPillars = {
     year: { stem: yearStem, branch: yearBranch },
@@ -40,24 +40,24 @@ function reconstructChart(row: Record<string, unknown>): ChartAnalysis {
   return {
     fourPillars,
     dayMaster: dayStem,
-    hiddenStems: (row.hidden_stems as Record<string, HiddenStem[]>) ?? { year: [], month: [], day: [], hour: [] },
-    tenGods: (row.ten_gods as Record<string, never>) ?? {},
-    elementBalance: (row.element_balance as ChartAnalysis['elementBalance']) ?? { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 },
-    dayMasterStrength: (row.day_master_strength as DayMasterStrength) ?? 'neutral',
+    hiddenStems: (row.hiddenStems as Record<string, HiddenStem[]>) ?? { year: [], month: [], day: [], hour: [] },
+    tenGods: (row.tenGods as Record<string, never>) ?? {},
+    elementBalance: (row.elementBalance as ChartAnalysis['elementBalance']) ?? { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 },
+    dayMasterStrength: (row.dayMasterStrength as DayMasterStrength) ?? 'neutral',
     supportScore: 0,
     drainScore: 0,
-    usefulGod: INDEX_TO_ELEMENT[row.useful_god as number] ?? ('Earth' as Element),
-    jealousyGod: INDEX_TO_ELEMENT[row.jealousy_god as number] ?? ('Wood' as Element),
-    chartPattern: (row.chart_pattern as string) ?? 'Normal',
+    usefulGod: INDEX_TO_ELEMENT[row.usefulGod as number] ?? ('Earth' as Element),
+    jealousyGod: INDEX_TO_ELEMENT[row.jealousyGod as number] ?? ('Wood' as Element),
+    chartPattern: (row.chartPattern as string) ?? 'Normal',
     chartPatternKorean: '',
     combinations: (row.combinations as Combination[]) ?? [],
     clashes: (row.clashes as Clash[]) ?? [],
-    specialStars: (row.special_stars as SpecialStar[]) ?? [],
-    lifeStages: (row.life_stages as Record<'year' | 'month' | 'day' | 'hour', LifeStage | null>) ?? { year: null, month: null, day: null, hour: null },
-    luckCycles: (row.luck_cycles as LuckCycle[]) ?? [],
+    specialStars: (row.specialStars as SpecialStar[]) ?? [],
+    lifeStages: (row.lifeStages as Record<'year' | 'month' | 'day' | 'hour', LifeStage | null>) ?? { year: null, month: null, day: null, hour: null },
+    luckCycles: (row.luckCycles as LuckCycle[]) ?? [],
     luckDirection: 'forward',
     luckStartAge: 0,
-    engineVersion: (row.engine_version as string) ?? '1.0.0',
+    engineVersion: (row.engineVersion as string) ?? '1.0.0',
   };
 }
 
@@ -69,10 +69,10 @@ function reconstructReading(row: Record<string, unknown>): ReadingResult {
   return {
     sections: content?.sections ?? [],
     rawText: content?.rawText ?? '',
-    tokenCount: { input: 0, output: row.token_count as number ?? 0 },
-    readingType: (row.reading_type as string) ?? 'full',
+    tokenCount: { input: 0, output: row.tokenCount as number ?? 0 },
+    readingType: (row.readingType as string) ?? 'full',
     language: (row.language as string) ?? 'en',
-    generatedAt: new Date((row.created_at as string) ?? Date.now()),
+    generatedAt: new Date((row.createdAt as string) ?? Date.now()),
   };
 }
 
@@ -90,10 +90,10 @@ export async function GET(
     }
 
     // Fetch associated chart
-    if (!readingRow.chart_id) {
+    if (!readingRow.chartId) {
       return NextResponse.json({ error: 'Reading has no associated chart' }, { status: 404 });
     }
-    const chartRow = await getChart(readingRow.chart_id);
+    const chartRow = await getChart(readingRow.chartId);
     if (!chartRow) {
       return NextResponse.json({ error: 'Chart not found' }, { status: 404 });
     }

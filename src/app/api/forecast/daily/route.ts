@@ -60,16 +60,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Check database
-    const dbEnergy = await getDailyEnergy(todayStr) as {
-      stem_index: number;
-      branch_index: number;
-      element_highlights: Record<string, unknown>;
-    } | null;
+    const dbEnergy = await getDailyEnergy(todayStr);
     if (dbEnergy) {
       const result = {
-        stemIndex: dbEnergy.stem_index,
-        branchIndex: dbEnergy.branch_index,
-        elementHighlights: dbEnergy.element_highlights,
+        stemIndex: dbEnergy.stemIndex,
+        branchIndex: dbEnergy.branchIndex,
+        elementHighlights: dbEnergy.elementHighlights as Record<string, unknown>,
       };
       await cacheDailyEnergy(todayStr, result);
       return NextResponse.json({

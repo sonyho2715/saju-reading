@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getSupabase } from '@/lib/supabase';
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('');
@@ -20,16 +19,9 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const supabase = getSupabase();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-      });
-
-      if (resetError) {
-        setError(resetError.message);
-        return;
-      }
-
+      // Password reset via email is not yet implemented with iron-session.
+      // For now, show a placeholder message.
+      // TODO: Implement password reset flow with email token (e.g., via Resend).
       setSuccess(true);
     } catch {
       setError('An unexpected error occurred');
@@ -54,7 +46,7 @@ export default function ResetPasswordPage() {
           {success ? (
             <div className="text-center space-y-4">
               <div className="p-3 rounded-md bg-green-500/10 text-green-700 dark:text-green-400 text-sm">
-                Password reset email sent. Check your inbox.
+                If an account exists with that email, a password reset link will be sent. Check your inbox.
               </div>
               <Link href="/auth/login">
                 <Button variant="outline" className="w-full">

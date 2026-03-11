@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { stripe } from '@/lib/stripe';
-import { createServerClient } from '@/lib/supabase';
+import { db } from '@/lib/prisma';
 
 const inputSchema = z.object({
   userId: z.string().min(1),
@@ -12,14 +12,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const input = inputSchema.parse(body);
 
-    const supabase = createServerClient();
-    const { data: user } = await supabase
-      .from('users')
-      .select('stripe_customer_id')
-      .eq('id', input.userId)
-      .single();
+    const user = await db.user.findUnique({
+      where: { id: input.userId },
+      select: { stripeCustomerId: true },
+    });
 
-    if (!user?.stripe_customer_id) {
+    if (!user?.stripeCustomerId) {
       return NextResponse.json(
         { success: false, error: 'No billing account found. Subscribe first.' },
         { status: 404 }
@@ -29,7 +27,7 @@ export async function POST(req: NextRequest) {
     const origin = req.headers.get('origin') ?? 'http://localhost:3000';
 
     const session = await stripe.billingPortal.sessions.create({
-      customer: user.stripe_customer_id,
+      customer: user.stripeCustomerId,
       return_url: `${origin}/dashboard`,
     });
 
