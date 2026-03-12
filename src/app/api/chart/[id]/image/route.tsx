@@ -28,10 +28,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const chartRow = await getChart(id);
+    let chartRow: Awaited<ReturnType<typeof getChart>>;
+    try {
+      chartRow = await getChart(id);
+    } catch {
+      return new Response('Chart not found', { status: 404 });
+    }
 
     if (!chartRow) {
-      return NextResponse.json({ error: 'Chart not found' }, { status: 404 });
+      return new Response('Chart not found', { status: 404 });
     }
 
     const yearStem = STEMS[chartRow.yearStem];
