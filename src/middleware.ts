@@ -4,7 +4,6 @@ import type { SessionData } from '@/lib/auth';
 
 // Routes that require authentication to use (saving/crediting features)
 const PROTECTED_API_ROUTES = [
-  '/api/reading/generate',
   '/api/forecast/annual',
   '/api/names/generate',
   '/api/lucky-dates',
@@ -60,7 +59,7 @@ export const config = {
     '/dashboard/:path*',
     '/settings/:path*',
     '/profile/:path*',
-    '/api/reading/:path*',
+
     '/api/forecast/annual/:path*',
     '/api/names/:path*',
     '/api/lucky-dates/:path*',
