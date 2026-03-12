@@ -52,7 +52,25 @@ export function buildReadingPrompt(
     sections.push(`SPECIFIC QUESTION FROM THE USER:\n"${options.specificQuestion}"\nAddress this question within the context of the reading.`);
   }
 
-  // Section 6: Quality directive
+  // Section 6: Heading language enforcement
+  if (language === 'ko') {
+    sections.push(`FORMATTING: Use Korean for ALL headings and section titles. Never use English headings. Start sections with Korean titles like '## 핵심 본성' not '## Core Nature'. Use these Korean section titles:
+- '핵심 본성' (Core Nature)
+- '내면 세계' (Inner World)
+- '타고난 재능' (Natural Gifts)
+- '그림자와 맹점' (Shadow & Blind Spots)
+- '인생 주제' (Life Theme)
+- '직업과 재물' (Career & Wealth)
+- '사랑과 관계' (Love & Relationships)
+- '건강' (Health)
+- '연간 운세' (Annual Forecast)
+- '월간 운세' (Monthly Forecast)
+- '궁합 분석' (Compatibility Analysis)`);
+  } else if (language === 'vi') {
+    sections.push(`FORMATTING: Use Vietnamese for ALL headings and section titles. Never use English headings. Translate all section names to Vietnamese.`);
+  }
+
+  // Section 7: Quality directive
   sections.push(buildQualityDirective());
 
   return sections.join('\n\n---\n\n');

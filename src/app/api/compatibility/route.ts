@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { calculateFullChart } from '@/engine';
 import type { ChartAnalysis } from '@/engine/types';
-import { generateReading } from '@/lib/reading-generator';
+import { streamReading } from '@/lib/reading-generator';
 import { getChart, saveCompatibility } from '@/lib/db';
 import { checkCompatibilityRateLimit } from '@/lib/rate-limiter';
 import type { Language } from '@/engine/interpretation/prompt-builder';
@@ -105,37 +105,57 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate compatibility reading
-    const reading = await generateReading(chartA, 'compatibility', language, {
-      partnerChart: chartB,
+    // Calculate compatibility score (synchronous, fast)
+    const score = calculateCompatibilityScore(chartA, chartB);
+    const userId = req.headers.get('x-user-id');
+
+    // Stream the compatibility reading via SSE to avoid Vercel timeout
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Send initial metadata before streaming tokens
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ meta: { chartA, chartB, score } })}\n\n`));
+
+          const readingResult = await streamReading(
+            chartA,
+            'compatibility',
+            language,
+            (token: string) => {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token })}\n\n`));
+            },
+            { partnerChart: chartB }
+          );
+
+          // Send completion event
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, sections: readingResult.sections })}\n\n`));
+          controller.close();
+
+          // Post-stream: save reading (fire and forget)
+          if (userId && chartAId && chartBId) {
+            try {
+              await saveCompatibility(chartAId, chartBId, score, {
+                readingText: readingResult.rawText,
+                sections: readingResult.sections,
+              });
+            } catch (saveErr) {
+              console.error('[compatibility] Failed to save:', saveErr);
+            }
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Stream error';
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: message })}\n\n`));
+          controller.close();
+        }
+      },
     });
 
-    // Calculate a simple compatibility score based on element harmony
-    const score = calculateCompatibilityScore(chartA, chartB);
-
-    // Save if both chart IDs exist
-    const userId = req.headers.get('x-user-id');
-    if (userId && chartAId && chartBId) {
-      try {
-        await saveCompatibility(chartAId, chartBId, score, {
-          readingText: reading.rawText,
-          sections: reading.sections,
-        });
-      } catch (saveErr) {
-        console.error('[compatibility] Failed to save:', saveErr);
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        chartA,
-        chartB,
-        reading: {
-          sections: reading.sections,
-          rawText: reading.rawText,
-        },
-        score,
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
       },
     });
   } catch (error) {

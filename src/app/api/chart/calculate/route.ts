@@ -6,7 +6,15 @@ import { getCachedChart, cacheChart } from '@/lib/cache';
 import { checkChartRateLimit } from '@/lib/rate-limiter';
 
 const inputSchema = z.object({
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/,  'birthDate must be YYYY-MM-DD'),
+  birthDate: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'birthDate must be YYYY-MM-DD')
+    .refine((d) => {
+      const date = new Date(d + 'T12:00:00Z');
+      if (isNaN(date.getTime())) return false;
+      // Verify the date didn't roll over (e.g. Feb 30 → Mar 2)
+      const [y, m, day] = d.split('-').map(Number);
+      return date.getUTCFullYear() === y && date.getUTCMonth() + 1 === m && date.getUTCDate() === day;
+    }, 'Invalid date — day or month out of range'),
   birthTime: z.string().regex(/^\d{2}:\d{2}$/, 'birthTime must be HH:MM').optional().nullable(),
   gender: z.enum(['male', 'female']),
   calendarType: z.enum(['solar', 'lunar']).default('solar'),
@@ -17,6 +25,17 @@ const inputSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Parse body — catch malformed JSON and return 400 instead of 500
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
+
     // Rate limit by IP
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
     const rateCheck = await checkChartRateLimit(ip);
@@ -34,8 +53,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse and validate input
-    const body = await req.json();
+    // Validate input
     const input = inputSchema.parse(body);
 
     // Check cache if profileId provided
@@ -89,11 +107,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const msg = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack?.split('\n').slice(0, 5).join(' | ') : '';
-    console.error('[chart/calculate] Error:', msg, stack);
+    console.error('[chart/calculate] Error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to calculate chart', detail: msg },
+      { success: false, error: 'Failed to calculate chart' },
       { status: 500 }
     );
   }

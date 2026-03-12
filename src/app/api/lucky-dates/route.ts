@@ -20,7 +20,7 @@ const inputSchema = z.object({
     isLeapMonth: z.boolean().default(false),
     timezone: z.string().default('Asia/Seoul'),
   }).optional(),
-  purpose: z.string().min(1).max(200),
+  purpose: z.enum(['wedding', 'business', 'move', 'surgery', 'travel', 'signing', 'general', 'marriage', 'interview', 'investment', 'study', 'ceremony', 'moving']),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   language: z.string().refine(
